@@ -17,6 +17,11 @@ Vagrant.configure("2") do |config|
     iscsi.vm.hostname = 'iscsi'
     iscsi.vm.network "private_network", ip: "192.168.50.20", virtualbox__intnet: true
     iscsi.vm.provider "virtualbox" do |vb|
+      # For the name, we emulate Vagrant name generation
+      # Note that Vagrant will execute this code at start, not
+      # on actual provision, final name for code just below
+      vb.name = 'nfs_iscsi_'+Time.now.strftime('%s%L')+'_'+Process.pid.to_s
+
       # https://stackoverflow.com/a/31177761/706716
       line = `VBoxManage list systemproperties`.split(/\n/).grep(/Default machine folder/).first
       vb_machine_folder = line.split(':')[1].strip()
