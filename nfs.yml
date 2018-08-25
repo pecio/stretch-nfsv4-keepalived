@@ -209,6 +209,7 @@
       src: /dev/sdb2
       state: mounted
   - name: Data file system permissions
+    run_once: yes
     file:
       path: /srv/nfs4/data
       state: directory
