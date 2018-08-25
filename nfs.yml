@@ -213,7 +213,7 @@
       name: nfs-kernel-server
     register: install_nfs_server
   - name: Stop and disable autostart of NFS server
-    when: install_nfs_server changed
+    when: install_nfs_server.changed
     service:
       name: nfs-server
       enabled: false
