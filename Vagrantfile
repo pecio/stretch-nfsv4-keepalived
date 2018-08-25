@@ -1,6 +1,8 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+ENV["LC_ALL"] = "C"
+
 Vagrant.configure("2") do |config|
   config.vm.define "iscsi" do |iscsi|
     iscsi.vm.box = "debian/stretch64"
