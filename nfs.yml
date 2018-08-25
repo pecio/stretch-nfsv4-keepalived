@@ -242,6 +242,11 @@
       src: notify.sh
       dest: /usr/local/sbin
       mode: '0740'
+  - name: Configuration id
+    lineinfile:
+      path: /etc/default/keepalived
+      line: 'DAEMON_ARGS="-i {{ ansible_hostname }}"'
+      regexp: '^DAEMON_ARGS'
   - name: keepalived.conf
     copy:
       src: keepalived.conf
