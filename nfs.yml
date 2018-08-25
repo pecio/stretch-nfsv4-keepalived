@@ -203,6 +203,9 @@
   hosts:
   - nfs1
   - nfs2
+  # We cannot install nfs-server concurrently as installation
+  # tries to write to shared /var/lib/nfs file system
+  serial: 1
   become: true
   tasks:
   - name: NFS software
