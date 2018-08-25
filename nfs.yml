@@ -211,6 +211,13 @@
   - name: NFS software
     apt:
       name: nfs-kernel-server
+    register: install_nfs_server
+  - name: Stop and disable autostart of NFS server
+    when: install_nfs_server changed
+    service:
+      name: nfs-server
+      enabled: false
+      state: stopped
   - name: idmapd enabled
     lineinfile:
       path: /etc/default/nfs-common
@@ -220,12 +227,6 @@
     copy:
      src: exports
      dest: /etc/exports
-    register: exports
-  - name: Restart NFS
-    when: exports.changed
-    service:
-      name: nfs-server
-      state: restarted
 
 - name: Keepalived
   hosts:
