@@ -151,6 +151,12 @@
       path: /srv/nfs4/data
       src: /dev/sdb
       state: mounted
+  - name: File system permissions
+    file:
+      path: /srv/nfs4/data
+      state: directory
+      owner: vagrant
+      group: vagrant
 
 - name: NFSv4 export
   hosts:
