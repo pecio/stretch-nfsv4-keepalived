@@ -237,6 +237,11 @@
   - name: Keepalived software
     apt:
       name: keepalived
+  - name: Notify script
+    copy:
+      src: notify.sh
+      dest: /usr/local/sbin
+      mode: '0740'
   - name: keepalived.conf
     copy:
       src: keepalived.conf
