@@ -170,6 +170,15 @@
     file:
       path: /var/lib/nfs
       state: directory
+  - name: NFS state mount override directory
+    file:
+      path: /etc/systemd/system/var-lib-nfs.mount.d
+      state: directory
+  - name: NFS state mount override file
+    copy:
+      src: depend-on-ocfs2.conf
+      dest: /etc/systemd/system/var-lib-nfs.mount.d/
+    register: depend_nfs
   - name: Mount NFS state file system
     mount:
       fstype: ocfs2
@@ -180,6 +189,19 @@
     file:
       path: /srv/nfs4/data
       state: directory
+  - name: Data mount override directory
+    file:
+      path: /etc/systemd/system/srv-nfs4-data.mount.d
+      state: directory
+  - name: Data mount override file
+    copy:
+      src: depend-on-ocfs2.conf
+      dest: /etc/systemd/system/srv-nfs4-data.mount.d/
+    register: depend_data
+  - name: Reload systemd
+    when: depend_nfs.changed or depend_data.changed
+    systemd:
+      daemon_reload: true
   - name: Mount data file system
     mount:
       fstype: ocfs2
@@ -208,11 +230,11 @@
       path: /etc/systemd/system/nfs-server.service.d
   - name: NFS systemd override file
     copy:
-      src: depend-on-ocfs2.conf
+      src: depend-on-mount.conf
       dest: /etc/systemd/system/nfs-server.service.d/
-    register: depend_on_ocfs2
+    register: depend_on_mount
   - name: Reload systemd
-    when: depend_on_ocfs2.changed
+    when: depend_on_mount.changed
     systemd:
       daemon_reload: yes
   - name: NFS software
@@ -259,6 +281,19 @@
       src: keepalived.conf
       dest: /etc/keepalived/
     register: keepalived_conf
+  - name: keepalived override directory
+    file:
+      path: /etc/systemd/system/keepalived.service.d
+      state: directory
+  - name: keepalived override file
+    copy:
+      src: depend-on-mount.conf
+      dest: /etc/systemd/system/keepalived.service.d/
+    register: keepalived_depend
+  - name: Reload systemd
+    when: keepalived_depend.changed
+    systemd:
+      daemon_reload: true
   - name: Restart keepalived
     when: keepalived_conf.changed
     service:
