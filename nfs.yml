@@ -219,5 +219,5 @@
       path: /data
       src: 'nfs:data'
       fstype: nfs
-      opts: vers=4,soft
+      opts: vers=4.2,soft
       state: mounted
