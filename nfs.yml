@@ -1,20 +1,21 @@
 ---
-- name: Configuración básica
+- name: Base configuration
   hosts: all
   become: true
   tasks:
-  - name: Zona horaria
+  - name: Time Zone
     timezone:
       name: CET
-  - name: Instalar ntp
+  - name: ntp installed
     package:
       name: ntp
-  - name: Habilitar ntp
+  - name: ntp enabled
+    when: not ansible_distribution == "Debian"
     service:
-      name: '{% if ansible_distribution == "Debian" %}ntp{% else %}ntpd{% endif %}'
+      name: ntpd
       enabled: true
       state: started
-  - name: Nombres en /etc/hosts
+  - name: Names en /etc/hosts
     blockinfile:
       path: /etc/hosts
       block: |
@@ -29,7 +30,7 @@
   hosts: iscsi
   become: true
   tasks:
-  - name: Software LVM
+  - name: LVM software
     package:
       name: lvm2
   - name: Volume Group
@@ -41,15 +42,15 @@
       lv: datalv
       size: 100%VG
       vg: datavg
-  - name: Software iSCSI
+  - name: iSCSI software
     package:
       name: tgt
-  - name: Configuración iSCSI
+  - name: iSCSI configuration
     copy:
       src: data_iscsi.conf
       dest: /etc/tgt/conf.d/
     register: config
-  - name: Recargar servicio iSCSI
+  - name: Reload iSCSI service
     when: config.changed
     service:
       name: tgt
@@ -61,17 +62,17 @@
   - nfs2
   become: true
   tasks:
-  - name: Software iSCSI
+  - name: iSCSI software
     package:
       name: open-iscsi
-  - name: Comprobar si ya detectado
+  - name: Check if already detected
     stat:
       path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
     register: default
-  - name: Descubrimiento
+  - name: Discovery
     when: not default.stat.exists
     command: iscsiadm -m discovery -t st -p 192.168.50.20
-  - name: Autentificación
+  - name: Authentication
     blockinfile:
       create: no
       path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
@@ -82,93 +83,93 @@
         node.session.auth.username_in = debian-iscsi-target
         node.session.auth.password_in = s3cr3to
     register: auth
-  - name: Autoarranque
+  - name: Autostart
     lineinfile:
       create: no
       path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
       regexp: '^node\.startup'
       line: 'node.startup = automatic'
-  - name: Reiniciar iSCSI Initiator
+  - name: Restart iSCSI initiator
     when: auth.changed
     service:
       name: open-iscsi
       state: restarted
 
 # http://realtechtalk.com/configuring_ocfs2_clustered_file_system_on_debian_based_linux_including_ubuntu_and_kubuntu-109-articles
-- name: Cluster OCFS
+- name: OCFS cluster
   hosts:
   - nfs1
   - nfs2
   become: true
   tasks:
-  - name: Software
+  - name: OCFS2 software
     apt:
       name: ocfs2-tools
-  - name: Habilitar O2CB
+  - name: Enable O2CB
     lineinfile:
       create: no
       path: /etc/default/o2cb
       regexp: '^O2CB_ENABLED'
       line: 'O2CB_ENABLED=true'
-  - name: Directorio configuración
+  - name: OCFS2 configuration directory
     file:
       state: directory
       path: /etc/ocfs2
-  - name: cluster.conf
+  - name: OCFS2 cluster.conf
     copy:
       src: cluster.conf
       dest: /etc/ocfs2/
     register: cluster_conf
-  - name: Reiniciar servicio
+  - name: Restart OCFS2 service
     when: cluster_conf.changed
     service:
       name: o2cb
       state: restarted
 
-- name: Crear sistema de archivos OCFS2
+- name: Create OCFS2 file system
   hosts: nfs1
   become: true
   tasks:
-  - name: Comprobar existencia /root/.creado_ocfs2
+  - name: Check if /root/.creado_ocfs2 exists
     stat:
       path: /root/.creado_ocfs2
     register: creado
-  - name: Comprobar existencia lost+found
+  - name: Check if lost+found exists
     stat:
       path: /srv/nfs4/data/lost+found
     register: lost_found
-  - name: Crear sistema de archivos
+  - name: Create file system
     when: not creado.stat.exists and not lost_found.stat.exists
     command: 'mkfs.ocfs2 -b 4k -C 32K -L Datos -N 4 /dev/sdb'
-  - name: /root/.creado_ocfs2 presente
+  - name: /root/.creado_ocfs2 present
     lineinfile:
       create: yes
       path: /root/.creado_ocfs2
       line: "El sistema de archivos está creado"
 
-- name: Montar sistema de archivos OCFS2
+- name: Mount OCFS2 file system
   hosts:
   - nfs1
   - nfs2
   become: true
   tasks:
-  - name: Punto de montaje
+  - name: Mount point
     file:
       path: /srv/nfs4/data
       state: directory
-  - name: Montar sistema de archivos
+  - name: Mount file system
     mount:
       fstype: ocfs2
       path: /srv/nfs4/data
       src: /dev/sdb
       state: mounted
 
-- name: Exportar NFS
+- name: NFSv4 export
   hosts:
   - nfs1
   - nfs2
   become: true
   tasks:
-  - name: Software
+  - name: NFS software
     apt:
       name: nfs-kernel-server
