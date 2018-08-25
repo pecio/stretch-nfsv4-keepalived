@@ -188,3 +188,23 @@
     service:
       name: nfs-server
       state: restarted
+
+- name: Keepalived
+  hosts:
+  - nfs1
+  - nfs2
+  become: true
+  tasks:
+  - name: Keepalived software
+    apt:
+      name: keepalived
+  - name: keepalived.conf
+    copy:
+      src: 'keepalived.conf_{{ inventory_hostname }}'
+      dest: /etc/keepalived/keepalived.conf
+    register: keepalived_conf
+  - name: Restart keepalived
+    when: keepalived_conf.changed
+    service:
+      name: keepalived
+      state: restarted
