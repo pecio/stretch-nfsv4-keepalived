@@ -208,3 +208,22 @@
     service:
       name: keepalived
       state: restarted
+
+- name: NFS Client
+  hosts: client
+  become: true
+  tasks:
+  - name: NFS client software
+    yum:
+      name: nfs-utils
+  - name: Mount point
+    file:
+      path: /data
+      state: directory
+  - name: Mount file system
+    mount:
+      path: /data
+      src: 'nfs:data'
+      fstype: nfs
+      opts: vers=4,soft
+      state: mounted
