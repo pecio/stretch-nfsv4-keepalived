@@ -194,8 +194,8 @@
       name: keepalived
   - name: keepalived.conf
     copy:
-      src: 'keepalived.conf_{{ inventory_hostname }}'
-      dest: /etc/keepalived/keepalived.conf
+      src: keepalived.conf
+      dest: /etc/keepalived/
     register: keepalived_conf
   - name: Restart keepalived
     when: keepalived_conf.changed
