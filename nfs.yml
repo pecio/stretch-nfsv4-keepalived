@@ -15,7 +15,7 @@
       name: ntpd
       enabled: true
       state: started
-  - name: Names en /etc/hosts
+  - name: Names in /etc/hosts
     blockinfile:
       path: /etc/hosts
       block: |
@@ -118,9 +118,9 @@
   hosts: nfs1
   become: true
   tasks:
-  - name: Check if /root/.creado_ocfs2 exists
+  - name: Check if /root/.ocfs2_created exists
     stat:
-      path: /root/.creado_ocfs2
+      path: /root/.ocfs2_created
     register: creado
   - name: Check if lost+found exists
     stat:
@@ -128,12 +128,12 @@
     register: lost_found
   - name: Create file system
     when: not creado.stat.exists and not lost_found.stat.exists
-    command: 'mkfs.ocfs2 -b 4k -C 32K -L Datos -N 4 /dev/sdb'
-  - name: /root/.creado_ocfs2 present
+    command: 'mkfs.ocfs2 -b 4k -C 32K -L Data -N 4 /dev/sdb'
+  - name: /root/.ocfs2_created present
     lineinfile:
       create: yes
-      path: /root/.creado_ocfs2
-      line: "El sistema de archivos está creado"
+      path: /root/.ocfs2_created
+      line: "The file system has been created"
 
 - name: Mount OCFS2 file system
   hosts:
