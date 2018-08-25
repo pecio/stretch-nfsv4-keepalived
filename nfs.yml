@@ -19,11 +19,11 @@
     blockinfile:
       path: /etc/hosts
       block: |
-        192.168.1.10 nfs
-        192.168.1.11 nfs1
-        192.168.1.12 nfs2
-        192.168.1.20 iscsi
-        192.168.1.100 client
+        192.168.50.10 nfs
+        192.168.50.11 nfs1
+        192.168.50.12 nfs2
+        192.168.50.20 iscsi
+        192.168.50.100 client
 
 # https://www.tecmint.com/setup-iscsi-target-and-initiator-on-debian-9/
 - name: iSCSI Target
