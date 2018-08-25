@@ -1,0 +1,174 @@
+---
+- name: Configuración básica
+  hosts: all
+  become: true
+  tasks:
+  - name: Zona horaria
+    timezone:
+      name: CET
+  - name: Instalar ntp
+    package:
+      name: ntp
+  - name: Habilitar ntp
+    service:
+      name: '{% if ansible_distribution == "Debian" %}ntp{% else %}ntpd{% endif %}'
+      enabled: true
+      state: started
+  - name: Nombres en /etc/hosts
+    blockinfile:
+      path: /etc/hosts
+      block: |
+        192.168.1.10 nfs
+        192.168.1.11 nfs1
+        192.168.1.12 nfs2
+        192.168.1.20 iscsi
+        192.168.1.100 client
+
+# https://www.tecmint.com/setup-iscsi-target-and-initiator-on-debian-9/
+- name: iSCSI Target
+  hosts: iscsi
+  become: true
+  tasks:
+  - name: Software LVM
+    package:
+      name: lvm2
+  - name: Volume Group
+    lvg:
+      vg: datavg
+      pvs: /dev/sdb
+  - name: Logical Volume
+    lvol:
+      lv: datalv
+      size: 100%VG
+      vg: datavg
+  - name: Software iSCSI
+    package:
+      name: tgt
+  - name: Configuración iSCSI
+    copy:
+      src: data_iscsi.conf
+      dest: /etc/tgt/conf.d/
+    register: config
+  - name: Recargar servicio iSCSI
+    when: config.changed
+    service:
+      name: tgt
+      state: restarted
+
+- name: iSCSI Initiators
+  hosts:
+  - nfs1
+  - nfs2
+  become: true
+  tasks:
+  - name: Software iSCSI
+    package:
+      name: open-iscsi
+  - name: Comprobar si ya detectado
+    stat:
+      path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
+    register: default
+  - name: Descubrimiento
+    when: not default.stat.exists
+    command: iscsiadm -m discovery -t st -p 192.168.50.20
+  - name: Autentificación
+    blockinfile:
+      create: no
+      path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
+      block: |
+        node.session.auth.method = CHAP
+        node.session.auth.username = nfs-iscsi-user
+        node.session.auth.password = secret0
+        node.session.auth.username_in = debian-iscsi-target
+        node.session.auth.password_in = s3cr3to
+    register: auth
+  - name: Autoarranque
+    lineinfile:
+      create: no
+      path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
+      regexp: '^node\.startup'
+      line: 'node.startup = automatic'
+  - name: Reiniciar iSCSI Initiator
+    when: auth.changed
+    service:
+      name: open-iscsi
+      state: restarted
+
+# http://realtechtalk.com/configuring_ocfs2_clustered_file_system_on_debian_based_linux_including_ubuntu_and_kubuntu-109-articles
+- name: Cluster OCFS
+  hosts:
+  - nfs1
+  - nfs2
+  become: true
+  tasks:
+  - name: Software
+    apt:
+      name: ocfs2-tools
+  - name: Habilitar O2CB
+    lineinfile:
+      create: no
+      path: /etc/default/o2cb
+      regexp: '^O2CB_ENABLED'
+      line: 'O2CB_ENABLED=true'
+  - name: Directorio configuración
+    file:
+      state: directory
+      path: /etc/ocfs2
+  - name: cluster.conf
+    copy:
+      src: cluster.conf
+      dest: /etc/ocfs2/
+    register: cluster_conf
+  - name: Reiniciar servicio
+    when: cluster_conf.changed
+    service:
+      name: o2cb
+      state: restarted
+
+- name: Crear sistema de archivos OCFS2
+  hosts: nfs1
+  become: true
+  tasks:
+  - name: Comprobar existencia /root/.creado_ocfs2
+    stat:
+      path: /root/.creado_ocfs2
+    register: creado
+  - name: Comprobar existencia lost+found
+    stat:
+      path: /srv/nfs4/data/lost+found
+    register: lost_found
+  - name: Crear sistema de archivos
+    when: not creado.stat.exists and not lost_found.stat.exists
+    command: 'mkfs.ocfs2 -b 4k -C 32K -L Datos -N 4 /dev/sdb'
+  - name: /root/.creado_ocfs2 presente
+    lineinfile:
+      create: yes
+      path: /root/.creado_ocfs2
+      line: "El sistema de archivos está creado"
+
+- name: Montar sistema de archivos OCFS2
+  hosts:
+  - nfs1
+  - nfs2
+  become: true
+  tasks:
+  - name: Punto de montaje
+    file:
+      path: /srv/nfs4/data
+      state: directory
+  - name: Montar sistema de archivos
+    mount:
+      fstype: ocfs2
+      path: /srv/nfs4/data
+      src: /dev/sdb
+      state: mounted
+
+- name: Exportar NFS
+  hosts:
+  - nfs1
+  - nfs2
+  become: true
+  tasks:
+  - name: Software
+    apt:
+      name: nfs-kernel-server
