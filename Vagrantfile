@@ -4,6 +4,10 @@
 ENV["LC_ALL"] = "C"
 
 Vagrant.configure("2") do |config|
+  # We do not need any synced folder, will copy anything needed
+  # through the Ansible playbook
+  config.vm.synced_folder ".", "/vagrant", disabled: true
+
   config.vm.define "iscsi" do |iscsi|
     iscsi.vm.box = "debian/stretch64"
     iscsi.vm.hostname = 'iscsi'
