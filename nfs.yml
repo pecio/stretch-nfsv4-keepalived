@@ -208,6 +208,19 @@
   serial: 1
   become: true
   tasks:
+  - name: NFS systemd override directory
+    file:
+      state: directory
+      path: /etc/systemd/system/nfs-server.service.d
+  - name: NFS systemd override file
+    copy:
+      src: depend-on-ocfs2.conf
+      dest: /etc/systemd/system/nfs-server.service.d/
+    register: depend_on_ocfs2
+  - name: Reload systemd
+    when: depend_on_ocfs2.changed
+    systemd:
+      daemon_reload: yes
   - name: NFS software
     apt:
       name: nfs-kernel-server
