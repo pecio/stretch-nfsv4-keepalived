@@ -30,18 +30,6 @@
   hosts: iscsi
   become: true
   tasks:
-  - name: LVM software
-    package:
-      name: lvm2
-  - name: Volume Group
-    lvg:
-      vg: datavg
-      pvs: /dev/sdb
-  - name: Logical Volume
-    lvol:
-      lv: datalv
-      size: 100%VG
-      vg: datavg
   - name: iSCSI software
     package:
       name: tgt
