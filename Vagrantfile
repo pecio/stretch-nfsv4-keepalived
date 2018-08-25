@@ -43,7 +43,7 @@ Vagrant.configure("2") do |config|
   end
 
   config.vm.define "client" do |client|
-    client.vm.box = "centos/7"
+    client.vm.box = "debian/stretch64"
     client.vm.hostname = 'client'
     client.vm.network "private_network", ip: "192.168.50.100", virtualbox__intnet: true
 

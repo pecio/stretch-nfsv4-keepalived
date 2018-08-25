@@ -9,12 +9,6 @@
   - name: ntp installed
     package:
       name: ntp
-  - name: ntp enabled
-    when: not ansible_distribution == "Debian"
-    service:
-      name: ntpd
-      enabled: true
-      state: started
   - name: Names in /etc/hosts
     blockinfile:
       path: /etc/hosts
@@ -276,8 +270,8 @@
   become: true
   tasks:
   - name: NFS client software
-    yum:
-      name: nfs-utils
+    apt:
+      name: nfs-common
   - name: Mount point
     file:
       path: /data
@@ -287,5 +281,5 @@
       path: /data
       src: 'nfs:data'
       fstype: nfs
-      opts: vers=4.2,soft
+      opts: vers=4,soft
       state: mounted
