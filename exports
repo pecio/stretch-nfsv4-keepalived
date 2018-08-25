@@ -1,0 +1,2 @@
+/srv/nfs4	client(rw,sync,fsid=0,crossmnt,no_subtree_check)
+/srv/nfs4/data	client(rw,sync,no_subtree_check)

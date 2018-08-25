@@ -173,3 +173,18 @@
   - name: NFS software
     apt:
       name: nfs-kernel-server
+  - name: idmapd enabled
+    lineinfile:
+      path: /etc/default/nfs-common
+      regexp: '^NEED_IDMAPD'
+      line: 'NEED_IDMAPD=true'
+  - name: /etc/exports
+    copy:
+     src: exports
+     dest: /etc/exports
+    register: exports
+  - name: Restart NFS
+    when: exports.changed
+    service:
+      name: nfs-server
+      state: restarted
