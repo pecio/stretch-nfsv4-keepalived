@@ -114,44 +114,85 @@
       name: o2cb
       state: restarted
 
-- name: Create OCFS2 file system
+- name: Create OCFS2 file systems
   hosts: nfs1
   become: true
   tasks:
-  - name: Check if /root/.ocfs2_created exists
+  - name: Check if already partitioned
     stat:
-      path: /root/.ocfs2_created
-    register: creado
-  - name: Check if lost+found exists
+      path: /dev/sdb1
+    register: sdb1
+  - name: Partition disk
+    when: not sdb1.stat.exists
+    script: partition.sh
+  - name: Check if /root/.nfs_created exists
     stat:
-      path: /srv/nfs4/data/lost+found
-    register: lost_found
-  - name: Create file system
-    when: not creado.stat.exists and not lost_found.stat.exists
-    command: 'mkfs.ocfs2 -b 4k -C 32K -L Data -N 4 /dev/sdb'
-  - name: /root/.ocfs2_created present
+      path: /root/.nfs_created
+    register: nfs_created
+  - name: Check if /var/lib/nfs/lost+found exists
+    stat:
+      path: /var/lib/nfs/lost+found
+    register: nfs_lost_found
+  - name: Create /var/lib/nfs filesystem
+    when: not nfs_created.stat.exists and not nfs_lost_found.stat.exists
+    # Default options seem to be fine for 64 MB fs
+    command: 'mkfs.ocfs2 -L NFS -N 2 /dev/sdb1'
+  - name: /root/.nfs_created present
     lineinfile:
       create: yes
-      path: /root/.ocfs2_created
+      path: /root/.nfs_created
+      line: "The file system has been created"
+  - name: Check if /root/.data_created exists
+    stat:
+      path: /root/.data_created
+    register: data_created
+  - name: Check if /srv/nfs4/data/lost+found exists
+    stat:
+      path: /srv/nfs4/data/lost+found
+    register: data_lost_found
+  - name: Create data file system
+    when: not data_created.stat.exists and not data_lost_found.stat.exists
+    command: 'mkfs.ocfs2 -b 4k -C 32K -L Data -N 2 /dev/sdb2'
+  - name: /root/.data_created present
+    lineinfile:
+      create: yes
+      path: /root/.data_created
       line: "The file system has been created"
 
-- name: Mount OCFS2 file system
+- name: Mount OCFS2 file systems
   hosts:
   - nfs1
   - nfs2
   become: true
   tasks:
-  - name: Mount point
+  - name: Check if /dev/sdb1 exists
+    stat:
+      path: /dev/sdb1
+    register: sdb1
+  - name: Reload partition table
+    when: not sdb1.stat.exists
+    command: /usr/bin/partx -u /dev/sdb
+  - name: NFS state mount point
+    file:
+      path: /var/lib/nfs
+      state: directory
+  - name: Mount NFS state file system
+    mount:
+      fstype: ocfs2
+      path: /var/lib/nfs
+      src: /dev/sdb1
+      state: mounted
+  - name: Data mount point
     file:
       path: /srv/nfs4/data
       state: directory
-  - name: Mount file system
+  - name: Mount data file system
     mount:
       fstype: ocfs2
       path: /srv/nfs4/data
-      src: /dev/sdb
+      src: /dev/sdb2
       state: mounted
-  - name: File system permissions
+  - name: Data file system permissions
     file:
       path: /srv/nfs4/data
       state: directory
