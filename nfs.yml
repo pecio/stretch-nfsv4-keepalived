@@ -223,6 +223,10 @@
   - name: NFS software
     apt:
       name: nfs-kernel-server
+  - name: Directory /var/lib/nfs/nfsdcltrack (Debian bug 867067)
+    file:
+      path: /var/lib/nfs/nfsdcltrack
+      state: directory
   - name: idmapd enabled
     lineinfile:
       path: /etc/default/nfs-common
