@@ -91,8 +91,8 @@ and everything worked smoothly. Which says something (I am unsure what) about OC
 is 9 years old; the only caveat was that `ocfs2console` package does no longer exist but it seems
 not to be critical.
 
-A limitation of OCFS2 is that it does not support setting up file systems over logical partitions,
-only disk partitions.
+A limitation of OCFS2 is that it does not support setting up file systems over
+logical volumes, only partitions.
 
 #### OCFS2 Cluster itself
 We start by installing the `ocfs2-tools` package, then we enable starting the `O2CB` cluster
