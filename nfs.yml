@@ -119,39 +119,21 @@
   - name: Partition disk
     when: not sdb1.stat.exists
     script: partition.sh
-  - name: Check if /root/.nfs_created exists
-    stat:
-      path: /root/.nfs_created
-    register: nfs_created
-  - name: Check if /var/lib/nfs/lost+found exists
-    stat:
-      path: /var/lib/nfs/lost+found
-    register: nfs_lost_found
-  - name: Create /var/lib/nfs filesystem
-    when: not nfs_created.stat.exists and not nfs_lost_found.stat.exists
+  - name: Check current sdb1 file system
+    command: /bin/lsblk -no FSTYPE /dev/sdb1
+    register: lsblk_sdb1
+    changed_when: false
+  - name: Create /var/lib/nfs file system
+    when: not lsblk_sdb1.stdout == 'ocfs2'
     # Default options seem to be fine for 64 MB fs
     command: 'mkfs.ocfs2 -L NFS -N 2 /dev/sdb1'
-  - name: /root/.nfs_created present
-    lineinfile:
-      create: yes
-      path: /root/.nfs_created
-      line: "The file system has been created"
-  - name: Check if /root/.data_created exists
-    stat:
-      path: /root/.data_created
-    register: data_created
-  - name: Check if /srv/nfs4/data/lost+found exists
-    stat:
-      path: /srv/nfs4/data/lost+found
-    register: data_lost_found
+  - name: Check current sdb2 file system
+    command: /bin/lsblk -no FSTYPE /dev/sdb2
+    register: lsblk_sdb2
+    changed_when: false
   - name: Create data file system
-    when: not data_created.stat.exists and not data_lost_found.stat.exists
+    when: not lsblk_sdb2.stdout == 'ocfs2'
     command: 'mkfs.ocfs2 -b 4k -C 32K -L Data -N 2 /dev/sdb2'
-  - name: /root/.data_created present
-    lineinfile:
-      create: yes
-      path: /root/.data_created
-      line: "The file system has been created"
 
 - name: Mount OCFS2 file systems
   hosts:
