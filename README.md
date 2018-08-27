@@ -162,7 +162,90 @@ NFSv2 and NFSv3 and installing the following `/etc/exports` file:
 Kernel NFS service will start with the host.
 
 ### Keepalived setup
-This is the trickiest part ***and I have not documented it yet***.
+This is the trickiest part.
+
+First, we add a dependency to `keepalived.servive` on
+`nfs-server.service`. Then we install the `keepalived`
+package.
+
+Now we install `/usr/local/sbin/notify.sh`. It will be called by
+Keepalived whenever the VRRP instance status changes. It sends a
+line to syslog with its parameters and then
+* when entering MASTER, restarts `nfs-server.service`
+* when entering BACKUP, does nothing
+* when entering FAULT, waits 10 seconds, checks status of
+  `nfs-server.service` and tries to start it if it is down
+
+We also modify `/etc/default/keepalived` so the system hostname is
+passed as "configuration id" to the daemon, so we can use the same
+`keepalived.conf` for both hosts.
+
+Now we set the following `/etc/keepalived/keepalived.conf`:
+
+```
+global_defs {
+  script_user root
+}
+
+vrrp_script ping_client {
+  script "/bin/ping -c 1 client"
+  fall 2
+  rise 1
+}
+
+vrrp_script check_nfs {
+  script "/bin/systemctl status nfs-server.service"
+  interval 15
+  fall 1
+  rise 2
+}
+
+vrrp_instance VI_1 {
+  state MASTER
+  interface eth1
+  virtual_router_id 101
+@nfs1 priority 101
+@nfs2 priority 100
+  advert_int 1
+  authentication {
+    auth_type PASS
+    auth_pass s3cr3t0
+  }
+  virtual_ipaddress {
+    192.168.50.10
+  }
+  notify /usr/local/sbin/notify.sh
+  track_script {
+    ping_client
+    check_nfs
+  }
+}
+```
+
+It specifies `root` as the user to run scripts (actually
+redundant) then sets up two scripts that will be used further
+below to check the status of the underlying system and
+possibly set "FAIL" status:
+1. ping the client every second (default) and fail if it does not
+   succeed twice in a row, unfail if succeeds
+2. Check `nfs-server.service` every 15 seconds, failing the first
+   time it is down or in error, unfail if it suceeds twice in a
+   row
+
+Then it creates the VRRP instance "`VI_1`".
+* it tries to become MASTER
+* runs over `eth1`
+* has id 101
+* different pritority for each server (this is why we set up the
+  config id daemon option)
+* advertises every second
+* sets a shared secret authentication
+* controls 192.168.50.10 IP address
+* runs the `/usr/local/sbin/notify.sh` script whenever state changes
+* tracks the two scripts defined just above
+
+At last, we restart `keepalived.service`. Our NFSv4 cluster is now
+running.
 
 ### Client setup
 In the client, we simply install the `nfs-common` package, create the `/data` mount point
