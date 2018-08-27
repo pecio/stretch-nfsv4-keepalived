@@ -226,6 +226,15 @@
   - nfs2
   become: true
   tasks:
+  - name: keepalived override directory
+    file:
+      path: /etc/systemd/system/keepalived.service.d
+      state: directory
+  - name: keepalived override file
+    copy:
+      src: depend-on-nfs-server.conf
+      dest: /etc/systemd/system/keepalived.service.d/
+    register: keepalived_depend
   - name: Keepalived software
     apt:
       name: keepalived
@@ -244,19 +253,6 @@
       src: keepalived.conf
       dest: /etc/keepalived/
     register: keepalived_conf
-  - name: keepalived override directory
-    file:
-      path: /etc/systemd/system/keepalived.service.d
-      state: directory
-  - name: keepalived override file
-    copy:
-      src: depend-on-nfs-server.conf
-      dest: /etc/systemd/system/keepalived.service.d/
-    register: keepalived_depend
-  - name: Reload systemd
-    when: keepalived_depend.changed
-    systemd:
-      daemon_reload: true
   - name: Restart keepalived
     when: keepalived_conf.changed
     service:
