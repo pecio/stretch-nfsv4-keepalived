@@ -236,7 +236,7 @@
       dest: /etc/systemd/system/keepalived.service.d/
     register: keepalived_depend
   - name: Reload systemd
-    when: keepalived.changed
+    when: keepalived_depend.changed
     systemd:
       daemon_reload: yes
   - name: Keepalived software
