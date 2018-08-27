@@ -235,6 +235,10 @@
       src: depend-on-nfs-server.conf
       dest: /etc/systemd/system/keepalived.service.d/
     register: keepalived_depend
+  - name: Reload systemd
+    when: keepalived.changed
+    systemd:
+      daemon_reload: yes
   - name: Keepalived software
     apt:
       name: keepalived
