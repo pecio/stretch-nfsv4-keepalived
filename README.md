@@ -130,30 +130,29 @@ of them.
 
 #### OCFS2 File Systems mounting
 Now we reload the partition table in the other node and use the Ansible "mount" module to
-set up the file systems in `/etc/fstab` and mount them. But it is not that simple.
+set up the file systems in `/etc/fstab` and mount them.
 
-The mount points, `/var/lib/nfs` and `/srv/nfs4/data` are previously created. Also, the
-corresponding `.mount` units are customized to make them depend on `o2cb.service` (just in
-case, I have not had any real problem with it, but it bothered me the lack of that explicit
-dependency).
+The mount points, `/var/lib/nfs` and `/srv/nfs4/data` are previously created.
 
-After mounting, ownership of the mounted `/srv/nfs4/data` directory is given to the `vagrant`
-user.
+After mounting, ownership of the mounted `/srv/nfs4/data` directory is given
+to the `vagrant` user.
 
 ### NFSv4 setup
-This play has `serial: 1`. Actually only the installation of the `nfs-kernel-server` needs
-boing non concurrent (otherwise both nodes try to create the same files in `/var/lib/nfs`
-simultaneously and fail spectacularly), but Ansible does not support per-task concurrency
-limits.
+This play has `serial: 1`. Actually only the installation of the
+`nfs-kernel-server` ackage needs being non concurrent (otherwise both
+nodes will try to create the same files in `/var/lib/nfs`
+simultaneously and fail spectacularly), but Ansible does not support
+per-task concurrency limits.
 
-We first make `nfs-server.service` dependent on the two `.mount` generated above, then we
-install the `nfs-kernel-server` package.
+We first make `nfs-mountd.service` dependent on the `ocfs2.service`
+that mounts the two filesystems above (it needs `/var/lib/nfs`).
+Then we install the `nfs-kernel-server` package.
 
 Now a `/var/lib/nfs/nsdcltrack` directory is created to workaround
 [Debian bug #867067](https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=867067).
 
-Then we set up the system for NFSv4 by enabling `idmapd` and installing the following
-`/etc/exports` file:
+Then we set up the system for NFSv4 by enabling `idmapd`, disabling
+NFSv2 and NFSv3 and installing the following `/etc/exports` file:
 
 ```
 /srv/nfs4       client(rw,sync,fsid=0,crossmnt,no_subtree_check)
