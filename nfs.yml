@@ -6,9 +6,9 @@
   - name: Time Zone
     timezone:
       name: CET
-  - name: ntp installed
+  - name: Chrony installed
     package:
-      name: ntp
+      name: chrony
   - name: Names in /etc/hosts
     blockinfile:
       path: /etc/hosts

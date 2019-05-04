@@ -33,7 +33,7 @@ We start with 4 Debian Stretch virtual machines:
 
 They run the
 [Vanilla Stetch 64 box from Debian](https://app.vagrantup.com/debian/boxes/stretch64)
-with the only common customization of adding NTPd and
+with the only common customization of adding Chrony and
 setting up `/etc/hosts`.
 
 The iSCSI target machine has a second "data.vdi" 1 GB virtual
