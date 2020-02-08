@@ -49,7 +49,7 @@ Vagrant.configure("2") do |config|
 
     # We provision all environment inside "client" so it is
     # done once in parallel at end
-    config.vm.provision :ansible do |ansible|
+    client.vm.provision :ansible do |ansible|
       ansible.compatibility_mode = "2.0"
       ansible.playbook = "nfs.yml"
       ansible.limit = "all"
