@@ -1,4 +1,4 @@
-# NFSv4 cluster with Keepalived under Debian Stretch (Proof of Concept) (Ubunut Bionic variant)
+# NFSv4 cluster with Keepalived under Debian Stretch (Proof of Concept) (Ubuntu Bionic variant)
 This is a weekend project for checking if it was possible to set
 up an NFSv4 cluster without Pacemaker or similar.
 
