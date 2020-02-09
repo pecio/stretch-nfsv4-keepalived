@@ -25,6 +25,12 @@ available on startup, either we let it fail on startup or we add a
 circular dependency that results on `nfs-server.service` getting
 disabled. In both cases, NFS service does not start with server.
 
+## This partially works on Ubuntu Bionic
+A [branch](https://github.com/pecio/stretch-nfsv4-keepalived/tree/bionic)
+with the needed modifications exists. The problem is that OCFS2 seems
+unstable on Bionic, it sometimes crashed shortly after boot. Still,
+NFSv4 HA part seems to work.
+
 ## Requirements
 The setup runs under Vagrant with VirtualBox specific customizations
 and uses Ansible for provisioning, so you will need the three of
