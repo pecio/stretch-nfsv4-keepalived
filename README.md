@@ -17,6 +17,14 @@ Among other issues:
 * no redundancy for the aforementioned virtual disk
 * ~~little~~ no security
 
+## This does not work on Debian Buster
+On Debian Buster, `/var/lib/nfs` OCFS2 mount depends on
+`remote-fs-pre.target` which itself depends on `nfs-server.service`.
+As `nfs-mountd.service` needs the contents of `/var/lib/nfs` to be
+available on startup, either we let it fail on startup or we add a
+circular dependency that results on `nfs-server.service` getting
+disabled. In both cases, NFS service does not start with server.
+
 ## Requirements
 The setup runs under Vagrant with VirtualBox specific customizations
 and uses Ansible for provisioning, so you will need the three of
