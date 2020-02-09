@@ -2,7 +2,7 @@
 /usr/bin/logger "Invoked notify.sh with $1 $2 $3"
 case "$3" in
   "MASTER")
-    /bin/systemctl restart nfs-server.service
+    /bin/systemctl reload nfs-server.service
   ;;
   "BACKUP")
     :

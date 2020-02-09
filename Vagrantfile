@@ -9,7 +9,7 @@ Vagrant.configure("2") do |config|
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
   config.vm.define "iscsi" do |iscsi|
-    iscsi.vm.box = "debian/stretch64"
+    iscsi.vm.box = "ubuntu/bionic64"
     iscsi.vm.hostname = 'iscsi'
     iscsi.vm.network "private_network", ip: "192.168.50.20", virtualbox__intnet: true
     iscsi.vm.provider "virtualbox" do |vb|
@@ -25,25 +25,24 @@ Vagrant.configure("2") do |config|
       unless File.exist?(disk)
         vb.customize ['createhd', '--filename', disk, '--variant', 'Fixed', '--size', 1024]
       end
-      vb.customize ['storagectl', :id, '--name', 'SATA Controller', '--portcount', 2]
-      vb.customize ['storageattach', :id, '--storagectl', 'SATA Controller', '--port', 1, '--device', 0, '--type', 'hdd', '--medium', disk]
+      vb.customize ['storageattach', :id, '--storagectl', 'SCSI', '--port', 2, '--device', 0, '--type', 'hdd', '--medium', disk]
     end
   end
 
   config.vm.define "nfs1" do |nfs1|
-    nfs1.vm.box = "debian/stretch64"
+    nfs1.vm.box = "ubuntu/bionic64"
     nfs1.vm.hostname = 'nfs1'
     nfs1.vm.network "private_network", ip: "192.168.50.11", virtualbox__intnet: true
   end
 
   config.vm.define "nfs2" do |nfs2|
-    nfs2.vm.box = "debian/stretch64"
+    nfs2.vm.box = "ubuntu/bionic64"
     nfs2.vm.hostname = 'nfs2'
     nfs2.vm.network "private_network", ip: "192.168.50.12", virtualbox__intnet: true
   end
 
   config.vm.define "client" do |client|
-    client.vm.box = "debian/stretch64"
+    client.vm.box = "ubuntu/bionic64"
     client.vm.hostname = 'client'
     client.vm.network "private_network", ip: "192.168.50.100", virtualbox__intnet: true
 

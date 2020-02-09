@@ -1,5 +1,5 @@
 #! /bin/sh
-/sbin/sfdisk /dev/sdb <<EOF
+/sbin/sfdisk /dev/sdc <<EOF
 label: dos
 
 size=64M, type=83

@@ -49,7 +49,7 @@
       name: open-iscsi
   - name: Check if already detected
     stat:
-      path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
+      path: '/etc/iscsi/nodes/iqn.2020-02.es.raulpedroche:svc1/192.168.50.20,3260,1/default'
     register: default
   - name: Discovery
     when: not default.stat.exists
@@ -57,7 +57,7 @@
   - name: Authentication
     blockinfile:
       create: no
-      path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
+      path: '/etc/iscsi/nodes/iqn.2020-02.es.raulpedroche:svc1/192.168.50.20,3260,1/default'
       block: |
         node.session.auth.method = CHAP
         node.session.auth.username = nfs-iscsi-user
@@ -68,7 +68,7 @@
   - name: Autostart
     lineinfile:
       create: no
-      path: '/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default'
+      path: '/etc/iscsi/nodes/iqn.2020-02.es.raulpedroche:svc1/192.168.50.20,3260,1/default'
       regexp: '^node\.startup'
       line: 'node.startup = automatic'
   - name: Restart iSCSI initiator
@@ -86,7 +86,9 @@
   tasks:
   - name: OCFS2 software
     apt:
-      name: ocfs2-tools
+      name:
+      - linux-image-extra-virtual
+      - ocfs2-tools
   - name: Enable O2CB
     lineinfile:
       create: no
@@ -114,26 +116,26 @@
   tasks:
   - name: Check if already partitioned
     stat:
-      path: /dev/sdb1
-    register: sdb1
+      path: /dev/sdc1
+    register: sdc1
   - name: Partition disk
-    when: not sdb1.stat.exists
+    when: not sdc1.stat.exists
     script: partition.sh
-  - name: Check current sdb1 file system
-    command: /bin/lsblk -no FSTYPE /dev/sdb1
-    register: lsblk_sdb1
+  - name: Check current sdc1 file system
+    command: /bin/lsblk -no FSTYPE /dev/sdc1
+    register: lsblk_sdc1
     changed_when: false
   - name: Create /var/lib/nfs file system
-    when: not lsblk_sdb1.stdout == 'ocfs2'
+    when: not lsblk_sdc1.stdout == 'ocfs2'
     # Default options seem to be fine for 64 MB fs
-    command: 'mkfs.ocfs2 -L NFS -N 2 /dev/sdb1'
-  - name: Check current sdb2 file system
-    command: /bin/lsblk -no FSTYPE /dev/sdb2
-    register: lsblk_sdb2
+    command: 'mkfs.ocfs2 -L NFS -N 2 /dev/sdc1'
+  - name: Check current sdc2 file system
+    command: /bin/lsblk -no FSTYPE /dev/sdc2
+    register: lsblk_sdc2
     changed_when: false
   - name: Create data file system
-    when: not lsblk_sdb2.stdout == 'ocfs2'
-    command: 'mkfs.ocfs2 -b 4k -C 32K -L Data -N 2 /dev/sdb2'
+    when: not lsblk_sdc2.stdout == 'ocfs2'
+    command: 'mkfs.ocfs2 -b 4k -C 32K -L Data -N 2 /dev/sdc2'
 
 - name: Mount OCFS2 file systems
   hosts:
@@ -141,13 +143,13 @@
   - nfs2
   become: true
   tasks:
-  - name: Check if /dev/sdb1 exists
+  - name: Check if /dev/sdc1 exists
     stat:
-      path: /dev/sdb1
-    register: sdb1
+      path: /dev/sdc1
+    register: sdc1
   - name: Reload partition table
-    when: not sdb1.stat.exists
-    command: /usr/bin/partx -u /dev/sdb
+    when: not sdc1.stat.exists
+    command: /usr/bin/partx -u /dev/sdc
   - name: NFS state mount point
     file:
       path: /var/lib/nfs
@@ -156,7 +158,7 @@
     mount:
       fstype: ocfs2
       path: /var/lib/nfs
-      src: /dev/sdb1
+      src: /dev/sdc1
       state: mounted
   - name: Data mount point
     file:
@@ -166,7 +168,7 @@
     mount:
       fstype: ocfs2
       path: /srv/nfs4/data
-      src: /dev/sdb2
+      src: /dev/sdc2
       state: mounted
   - name: Data file system permissions
     run_once: yes
