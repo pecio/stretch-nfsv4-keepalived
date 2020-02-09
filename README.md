@@ -1,4 +1,4 @@
-# NFSv4 cluster with Keepalived under Debian Stretch (Proof of Concept)
+# NFSv4 cluster with Keepalived under Debian Stretch (Proof of Concept) (Ubunut Bionic variant)
 This is a weekend project for checking if it was possible to set
 up an NFSv4 cluster without Pacemaker or similar.
 
@@ -28,25 +28,25 @@ disabled. In both cases, NFS service does not start with server.
 ## Requirements
 The setup runs under Vagrant with VirtualBox specific customizations
 and uses Ansible for provisioning, so you will need the three of
-them. Each of the four machines uses the default 512 MB of RAM.
+them. Each of the four machines uses the default 1 GB of RAM.
 This has been developed/tested under macOS, but I have no reason to
 think it will not work under other operating system (provided it can
 run VirtualBox).
 
 ## Initial setup
-We start with 4 Debian Stretch virtual machines:
+We start with 4 Ubuntu Bionic virtual machines:
 * iSCSI target/storage backend ("iscsi")
 * 2 NFS servers ("nfs1" and "nfs2")
 * a client, so we can check it is working
 
 They run the
-[Vanilla Stetch 64 box from Debian](https://app.vagrantup.com/debian/boxes/stretch64)
+[Vanilla Bionic 64 box from Ubuntu](https://app.vagrantup.com/ubuntu/boxes/bionic64)
 with the only common customization of adding Chrony and
 setting up `/etc/hosts`.
 
-The iSCSI target machine has a second "data.vdi" 1 GB virtual
-disk added and the four of them are configured
-for a private network with static addresses.
+The iSCSI target machine has a third "data.vdi" 1 GB virtual
+disk added (Ubuntu Bionic Vagrant Box has a second 10 MB disk) and the
+four of them are configured for a private network with static addresses.
 
 Provision is made with a single run of ansible-playbook inside
 of the "client" VM definition that affects all four virtual machines.
@@ -75,8 +75,8 @@ and restart the service.
 
 The configuration file is quite simple:
 ```
-<target iqn.2018-08.es.raulpedroche:lun1>
-  backing-store /dev/sdb
+<target iqn.2020-02.es.raulpedroche:svc1>
+  backing-store /dev/sdc
   initiator-address 192.168.50.11
   initiator-address 192.168.50.12
   incominguser nfs-iscsi-user secret0
@@ -84,10 +84,9 @@ The configuration file is quite simple:
 </target>
 ```
 
-We define a single target "iqn.2018-08.es.raulpedroche:lun1"
-(actually "lun1" is not too good a name, as this is a target
-containing LUNs). For it, we set up:
-* a single data LUN backed by the whole `/dev/sdb`
+We define a single target "iqn.2020-02.es.raulpedroche:svc1"
+For it, we set up:
+* a single data LUN backed by the whole `/dev/sdc`
 * an access list allowing `192.168.50.11` and `192.168.50.12` (the two NFS servers)
 * inbound and outbound shared secrets for challenge/response authentication
 
@@ -96,14 +95,14 @@ The two NFS servers are then set up as iSCSI initiators. We
 install the `open-iscsi` package and perform a target discovery
 against `192.168.50.20` (the iSCSI target machine above), which
 will create the directory and configuration file
-`/etc/iscsi/nodes/iqn.2018-08.es.raulpedroche:lun1/192.168.50.20,3260,1/default`.
+`/etc/iscsi/nodes/iqn.2020-02.es.raulpedroche:svc1/192.168.50.20,3260,1/default`.
 That is the node name as defined above
-(`iqn.2018-08.es.raulpedroche:lun1`), access point address and
+(`iqn.2020-02.es.raulpedroche:svc1`), access point address and
 port (`192.168.50.20,3260`) and the LUN number (`1`). We then
 customize this configuration file adding the CHAP data and
 setting it for autostart.
 
-On restart of the `open-iscsi` service, a new `/dev/sdb`
+On restart of the `open-iscsi` service, a new `/dev/sdc`
 volume becomes available.
 
 ### OCFS2 Setup
@@ -115,7 +114,7 @@ setup above, OCFS2 is not the target of the experiment.
 I followed the instructions in
 [this article](http://realtechtalk.com/configuring_ocfs2_clustered_file_system_on_debian_based_linux_including_ubuntu_and_kubuntu-109-articles)
 and everything worked smoothly. Which says something (I am
-unsure what) about OCFS2, as the article is 9 years old; the
+unsure what) about OCFS2, as the article is 11 years old; the
 only caveat was that `ocfs2console` package does no longer
 exist but it seems not to be critical.
 
@@ -155,7 +154,7 @@ partition table of our shared disk:
 * a 64 MB Linux partition
 * a Linux partition with the remaining space
 
-This yields the `/dev/sdb1` and `/dev/sdb2` devices. We create
+This yields the `/dev/sdc1` and `/dev/sdc2` devices. We create
 a OCFS2 file system over each of them.
 
 #### OCFS2 File Systems mounting
@@ -219,6 +218,7 @@ Now we set the following `/etc/keepalived/keepalived.conf`:
 ```
 global_defs {
   script_user root
+  enable_script_security
 }
 
 vrrp_script ping_client {
@@ -236,7 +236,7 @@ vrrp_script check_nfs {
 
 vrrp_instance VI_1 {
   state MASTER
-  interface eth1
+  interface enp0s8
   virtual_router_id 101
 @nfs1 priority 101
 @nfs2 priority 100
@@ -268,7 +268,7 @@ possibly set "FAIL" status:
 
 Then it creates the VRRP instance "`VI_1`".
 * it tries to become MASTER
-* runs over `eth1`
+* runs over `enp0s8`
 * has id 101
 * different pritority for each server (this is why we set up the
   config id daemon option)
